@@ -1,10 +1,10 @@
 import { StyleSheet, Text, View } from "react-native";
 
-export default function HomeScreen() {
+export default function AboutScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Ana Sayfa</Text>
-      <Text>Mehmet Ali</Text>
+      <Text style={styles.title}>About Screen</Text>
+      <Text>This is the about screen.</Text>
     </View>
   );
 }

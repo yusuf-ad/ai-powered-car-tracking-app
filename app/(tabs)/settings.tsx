@@ -1,9 +1,9 @@
 import { StyleSheet, Text, View } from "react-native";
 
-export default function HomeScreen() {
+export default function SettingsScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Ana Sayfa</Text>
+      <Text style={styles.title}>Settings / About Screen</Text>
       <Text>Mehmet Ali</Text>
     </View>
   );

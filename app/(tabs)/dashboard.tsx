@@ -1,10 +1,11 @@
 import { StyleSheet, Text, View } from "react-native";
 
-export default function HomeScreen() {
+export default function DashboardScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Ana Sayfa</Text>
-      <Text>Mehmet Ali</Text>
+      <Text style={styles.title}>Dashboard Screen (Live Monitor)</Text>
+      <Text>Sayımın olduğu yer</Text>
+      <Text>Osman Yusuf</Text>
     </View>
   );
 }
