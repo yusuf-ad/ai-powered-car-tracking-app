@@ -1,5 +1,6 @@
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Image,
@@ -14,6 +15,7 @@ export default function HomeScreen() {
   const [ip, setIp] = useState("https://ai-tr***-car-prod.firebaseio.com");
   const colorScheme = useColorScheme();
   const themeColors = Colors[colorScheme === "dark" ? "dark" : "light"];
+  const router = useRouter();
 
   return (
     <View
@@ -61,14 +63,25 @@ export default function HomeScreen() {
         <Text style={styles.buttonText}>CONNECT SYSTEM</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button1}>
+      <TouchableOpacity
+        style={styles.button1}
+        onPress={() => router.push("/(auth)/login")}
+      >
         <Text style={styles.buttonText}>Login </Text>
       </TouchableOpacity>
 
       {/* STATUS */}
-      <Text style={[styles.status, { color: themeColors.status }]}>
-        Alreday Logged in?
-      </Text>
+
+      <TouchableOpacity onPress={() => router.push("/(auth)/signup")}>
+        <Text
+          style={[
+            styles.status,
+            { color: colorScheme === "light" ? "#2F3C8F" : "#E8EAF6" },
+          ]}
+        >
+          Create Acount
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }

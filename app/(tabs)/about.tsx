@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const developers = [
   {
@@ -41,6 +42,7 @@ const developers = [
 export default function AboutScreen() {
   const colorScheme = useColorScheme();
   const [isDark, setIsDark] = useState(colorScheme === "dark");
+  const { top } = useSafeAreaInsets();
 
   const toggleTheme = (value: boolean) => {
     setIsDark(value);
@@ -56,7 +58,9 @@ export default function AboutScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingTop: top + 8 }]}
+      >
         <ThemedText type="title" style={styles.headerTitle}>
           About
         </ThemedText>
