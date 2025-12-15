@@ -1,3 +1,5 @@
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, { useState } from "react";
 import {
   Image,
@@ -10,11 +12,22 @@ import {
 
 export default function HomeScreen() {
   const [ip, setIp] = useState("https://ai-tr***-car-prod.firebaseio.com");
+  const colorScheme = useColorScheme();
+  const themeColors = Colors[colorScheme === "dark" ? "dark" : "light"];
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[styles.container, { backgroundColor: themeColors.background }]}
+    >
       {/* APP TITLE */}
-      <Text style={styles.appTitle}>AI TRACK CAR</Text>
+      <Text
+        style={[
+          styles.appTitle,
+          { color: colorScheme === "light" ? "#2F3C8F" : "#E8EAF6" },
+        ]}
+      >
+        AI TRACK CAR
+      </Text>
 
       {/* ICON */}
       <Image
@@ -24,13 +37,21 @@ export default function HomeScreen() {
       />
 
       {/* LABEL */}
-      <Text style={styles.label}>Firebase Url</Text>
+      <Text style={[styles.label, { color: themeColors.label }]}>
+        Firebase Url
+      </Text>
 
       {/* INPUT */}
       <TextInput
         value={ip}
         onChangeText={setIp}
-        style={styles.input}
+        style={[
+          styles.input,
+          {
+            backgroundColor: themeColors.inputBackground,
+            color: themeColors.inputText,
+          },
+        ]}
         readOnly
         keyboardType="numeric"
       />
@@ -45,7 +66,9 @@ export default function HomeScreen() {
       </TouchableOpacity>
 
       {/* STATUS */}
-      <Text style={styles.status}>Alreday Logged in?</Text>
+      <Text style={[styles.status, { color: themeColors.status }]}>
+        Alreday Logged in?
+      </Text>
     </View>
   );
 }
@@ -56,7 +79,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 30,
