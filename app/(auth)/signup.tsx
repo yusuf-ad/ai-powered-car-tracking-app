@@ -1,15 +1,17 @@
 import { Colors } from "@/constants/theme";
+import { useAuth } from "@/context/auth-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -21,12 +23,14 @@ export default function SignupScreen() {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const colorScheme = useColorScheme();
   const themeColors = Colors[colorScheme === "dark" ? "dark" : "light"];
   const router = useRouter();
   const { top } = useSafeAreaInsets();
+  const { signUp } = useAuth();
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     if (!fullName || !email || !password || !confirmPassword) {
       alert("Please fill in all fields");
       return;
@@ -42,8 +46,16 @@ export default function SignupScreen() {
       return;
     }
 
-    // Signup logic here
-    alert("Signup successful! You can now login.");
+    setIsLoading(true);
+    const { error } = await signUp(email, password, fullName);
+    setIsLoading(false);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    alert("Kayıt başarılı! Lütfen email adresinizi doğrulayın.");
     router.push("/(auth)/login");
   };
 
@@ -200,8 +212,16 @@ export default function SignupScreen() {
         </View>
 
         {/* SIGNUP BUTTON */}
-        <TouchableOpacity style={styles.signupButton} onPress={handleSignup}>
-          <Text style={styles.buttonText}>SIGN UP</Text>
+        <TouchableOpacity
+          style={[styles.signupButton, isLoading && styles.buttonDisabled]}
+          onPress={handleSignup}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.buttonText}>SIGN UP</Text>
+          )}
         </TouchableOpacity>
 
         {/* LOGIN LINK */}
@@ -337,6 +357,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
+  },
+
+  buttonDisabled: {
+    opacity: 0.7,
   },
 
   buttonText: {
