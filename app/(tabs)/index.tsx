@@ -1,26 +1,46 @@
 import { Colors } from "@/constants/theme";
+import { useAuth } from "@/context/auth-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  Image,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Image,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
   const [ip, setIp] = useState("https://ai-tr***-car-prod.firebaseio.com");
   const colorScheme = useColorScheme();
   const themeColors = Colors[colorScheme === "dark" ? "dark" : "light"];
   const router = useRouter();
+  const { user } = useAuth();
+  const { top } = useSafeAreaInsets();
+
+  const userName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
 
   return (
     <View
       style={[styles.container, { backgroundColor: themeColors.background }]}
     >
+      {/* HEADER */}
+      {user && (
+        <View style={[styles.header, { top: top + 10 }]}>
+          <Text style={[styles.greeting, { color: themeColors.text }]}>
+            Hello, {userName}
+          </Text>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {userName.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        </View>
+      )}
+
       {/* APP TITLE */}
       <Text
         style={[
@@ -63,25 +83,27 @@ export default function HomeScreen() {
         <Text style={styles.buttonText}>CONNECT SYSTEM</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.button1}
-        onPress={() => router.push("/(auth)/login")}
-      >
-        <Text style={styles.buttonText}>Login </Text>
-      </TouchableOpacity>
+      {!user && (
+        <>
+          <TouchableOpacity
+            style={styles.button1}
+            onPress={() => router.push("/(auth)/login")}
+          >
+            <Text style={styles.buttonText}>Login </Text>
+          </TouchableOpacity>
 
-      {/* STATUS */}
-
-      <TouchableOpacity onPress={() => router.push("/(auth)/signup")}>
-        <Text
-          style={[
-            styles.status,
-            { color: colorScheme === "light" ? "#2F3C8F" : "#E8EAF6" },
-          ]}
-        >
-          Create Acount
-        </Text>
-      </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push("/(auth)/signup")}>
+            <Text
+              style={[
+                styles.status,
+                { color: colorScheme === "light" ? "#2F3C8F" : "#E8EAF6" },
+              ]}
+            >
+              Create Account
+            </Text>
+          </TouchableOpacity>
+        </>
+      )}
     </View>
   );
 }
@@ -97,10 +119,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
   },
 
+  header: {
+    position: "absolute",
+    left: 20,
+    right: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  greeting: {
+    fontSize: 18,
+    fontWeight: "600",
+  },
+
+  avatar: {
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    backgroundColor: "#2F3C8F",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  avatarText: {
+    color: "#FFFFFF",
+    fontSize: 20,
+    fontWeight: "bold",
+  },
+
   appTitle: {
     fontSize: 30,
     fontWeight: "bold",
-    color: "#2F3C8F", // buton rengiyle uyumlu
+    color: "#2F3C8F",
     letterSpacing: 2,
     marginBottom: 50,
   },
