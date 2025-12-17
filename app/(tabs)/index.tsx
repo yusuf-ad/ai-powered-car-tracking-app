@@ -1,15 +1,16 @@
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/context/auth-context";
+import { useTransition } from "@/context/transition-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
-    Image,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -20,8 +21,18 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { top } = useSafeAreaInsets();
+  const { startTransition } = useTransition();
+  const buttonRef = useRef<View>(null);
 
   const userName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
+
+  const handleConnectPress = () => {
+    buttonRef.current?.measureInWindow((x: number, y: number, w: number, h: number) => {
+      const centerX = x + w / 2;
+      const centerY = y + h / 2;
+      startTransition(centerX, centerY, '#e80f95ff', '/(tabs)/dashboard');
+    });
+  };
 
   return (
     <View
@@ -79,7 +90,11 @@ export default function HomeScreen() {
       />
 
       {/* BUTTON */}
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity 
+        ref={buttonRef}
+        style={styles.button}
+        onPress={handleConnectPress}
+      >
         <Text style={styles.buttonText}>CONNECT SYSTEM</Text>
       </TouchableOpacity>
 
