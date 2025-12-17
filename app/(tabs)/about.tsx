@@ -1,18 +1,20 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { useAuth } from "@/context/auth-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  Appearance,
-  Image,
-  Linking,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TouchableOpacity,
-  View,
+    Appearance,
+    Image,
+    Linking,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -43,6 +45,8 @@ export default function AboutScreen() {
   const colorScheme = useColorScheme();
   const [isDark, setIsDark] = useState(colorScheme === "dark");
   const { top } = useSafeAreaInsets();
+  const { user, signOut } = useAuth();
+  const router = useRouter();
 
   const toggleTheme = (value: boolean) => {
     setIsDark(value);
@@ -51,6 +55,11 @@ export default function AboutScreen() {
 
   const handleOpenSourceCode = () => {
     Linking.openURL("https://github.com/yusuf-ad/ai-powered-car-tracking-app");
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.replace("/");
   };
 
   const cardBackgroundColor = colorScheme === "dark" ? "#1E1E1E" : "#FFFFFF";
@@ -134,6 +143,19 @@ export default function AboutScreen() {
           <Text style={styles.buttonText}>View Source Code</Text>
         </TouchableOpacity>
 
+        {/* Sign Out Button */}
+        {user && (
+          <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+            <Ionicons
+              name="log-out-outline"
+              size={24}
+              color="#FFFFFF"
+              style={styles.buttonIcon}
+            />
+            <Text style={styles.signOutButtonText}>Sign Out</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Bottom padding */}
         <View style={{ height: 20 }} />
       </ScrollView>
@@ -216,5 +238,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#1A237E",
+  },
+  signOutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#DC3545",
+    paddingVertical: 12,
+    borderRadius: 25,
+    marginTop: 16,
+  },
+  signOutButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#FFFFFF",
   },
 });
