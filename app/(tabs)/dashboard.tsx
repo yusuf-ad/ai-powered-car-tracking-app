@@ -42,33 +42,6 @@ interface ClassCardProps {
 
 // --- COMPONENTS ---
 
-const SystemStat = ({
-  label,
-  value,
-  icon,
-  color,
-  textColor,
-  labelColor,
-}: {
-  label: string;
-  value: string;
-  icon: any;
-  color: string;
-  textColor: string;
-  labelColor: string;
-}) => (
-  <View style={styles.systemStat}>
-    <MaterialCommunityIcons
-      name={icon}
-      size={16}
-      color={color}
-      style={{ marginBottom: 4 }}
-    />
-    <Text style={[styles.statValue, { color: textColor }]}>{value}</Text>
-    <Text style={[styles.statLabelSmall, { color: labelColor }]}>{label}</Text>
-  </View>
-);
-
 const ClassCard = ({
   label,
   count,
@@ -170,10 +143,6 @@ export default function App() {
   // We start opacity at 0.6 so it's visible even if user can't scroll much, but animates to 1 on scroll
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  // Stats State
-  const [fps, setFps] = useState(60);
-  const [latency, setLatency] = useState(24);
-  const [accuracy, setAccuracy] = useState(98.5);
   const { top, bottom } = useSafeAreaInsets();
 
   // Theme colors
@@ -189,39 +158,11 @@ export default function App() {
     borderStrong: isDark ? "#333" : "#D0D0D0",
     statusBarStyle: isDark ? "light-content" : "dark-content",
   };
-  // FPS Counter
-  useEffect(() => {
-    let lastTime = Date.now();
-    let frames = 0;
-    let animationFrameId: number;
-
-    const loop = () => {
-      const now = Date.now();
-      frames++;
-
-      if (now - lastTime >= 1000) {
-        setFps(frames);
-        frames = 0;
-        lastTime = now;
-      }
-
-      animationFrameId = requestAnimationFrame(loop);
-    };
-
-    loop();
-
-    return () => {
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
-    };
-  }, []);
 
   useEffect(() => {
     // Listen to the single status document
     const docRef = doc(db, "otopark", "durum");
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
-      // Update Latency
-      setLatency(Math.floor(Math.random() * (30 - 10) + 10));
-
       if (docSnap.exists()) {
         const data = docSnap.data() as DurumData;
 
@@ -233,9 +174,6 @@ export default function App() {
           cikis: data.cikis || 0,
           icerde: data.icerde || 0,
         });
-
-        // Simulating accuracy base on consistency (mock)
-        setAccuracy(99.2 + Math.random() * 0.7);
       }
     });
 
@@ -289,46 +227,13 @@ export default function App() {
               TRAFFIC<Text style={{ color: "#3B82F6" }}>AI</Text>
             </Text>
             <Text style={[styles.subTitle, { color: theme.textSecondary }]}>
-              Istanbul, TR • CAM-01
+              Gaziantep, TR • CAM-01
             </Text>
           </View>
           <View style={styles.liveBadge}>
             <View style={styles.blinkingDot} />
             <Text style={styles.liveText}>LIVE</Text>
           </View>
-        </View>
-
-        {/* --- SYSTEM STATS (Functional) --- */}
-        <View
-          style={[
-            styles.statsRow,
-            { backgroundColor: theme.cardBg, borderColor: theme.border },
-          ]}
-        >
-          <SystemStat
-            label="FPS"
-            value={fps.toString()}
-            icon="speedometer"
-            color="#10B981"
-            textColor={theme.text}
-            labelColor={theme.textTertiary}
-          />
-          <SystemStat
-            label="LATENCY"
-            value={`${latency}ms`}
-            icon="wifi"
-            color="#3B82F6"
-            textColor={theme.text}
-            labelColor={theme.textTertiary}
-          />
-          <SystemStat
-            label="ACCURACY"
-            value={`${accuracy.toFixed(1)}%`}
-            icon="target"
-            color="#F59E0B"
-            textColor={theme.text}
-            labelColor={theme.textTertiary}
-          />
         </View>
 
         {/* --- HERO CARD --- */}
@@ -475,26 +380,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "bold",
   },
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    borderRadius: 16,
-    padding: 15,
-    marginBottom: 25,
-    borderWidth: 1,
-  },
-  systemStat: {
-    alignItems: "center",
-  },
-  statValue: {
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  statLabelSmall: {
-    fontSize: 10,
-    fontWeight: "600",
-    marginTop: 2,
-  },
+
   heroCard: {
     borderRadius: 24,
     padding: 25,
