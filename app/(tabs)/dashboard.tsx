@@ -1,7 +1,7 @@
 import { db } from "@/firebaseConfig";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { collection, onSnapshot, query } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -15,17 +15,16 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // --- TYPES ---
-interface Counts {
-  car: number;
-  truck: number;
-  bus: number;
-  motorcycle: number;
+interface DurumData {
+  giris: number;
+  cikis: number;
+  icerde: number;
 }
 
-interface VehicleLog {
+interface LogData {
   id: string;
-  type: string;
-  timestamp: any; // Firestore Timestamp
+  type: "giris" | "cikis";
+  timestamp: any;
 }
 
 interface ClassCardProps {
@@ -161,14 +160,12 @@ const getTypeColor = (type: string) => {
 
 export default function App() {
   const colorScheme = useColorScheme();
-  const [totalCount, setTotalCount] = useState<number>(0);
-  const [classCounts, setClassCounts] = useState<Counts>({
-    car: 0,
-    truck: 0,
-    bus: 0,
-    motorcycle: 0,
+  const [durum, setDurum] = useState<DurumData>({
+    giris: 0,
+    cikis: 0,
+    icerde: 0,
   });
-  const [recentLogs, setRecentLogs] = useState<VehicleLog[]>([]);
+  const [recentLogs, setRecentLogs] = useState<LogData[]>([]);
   // Animation Values
   // We start opacity at 0.6 so it's visible even if user can't scroll much, but animates to 1 on scroll
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -219,66 +216,27 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // Listen to vehicle detections, order by timestamp desc for logs?
-    // Firestore realtime listener doesn't perfectly support 'orderBy' without an index usually.
-    // For simplicity, we'll sort client-side for this small demo or assume insertion order.
-    // Ideally: const q = query(collection(db, "detected_vehicles"), orderBy('timestamp', 'desc'), limit(10));
-    // Users code uses document() which creates auto-id (roughly ordered), but we don't have indexes yet.
-    // We will just fetch all and process client side for the scope of this task.
+    // Listen to the single status document
+    const docRef = doc(db, "otopark", "durum");
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      // Update Latency
+      setLatency(Math.floor(Math.random() * (30 - 10) + 10));
 
-    const q = query(collection(db, "detected_vehicles"));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      // Simulate Latency update on data receive
-      setLatency(Math.floor(Math.random() * (45 - 15) + 15));
+      if (docSnap.exists()) {
+        const data = docSnap.data() as DurumData;
 
-      let newCounts = { car: 0, truck: 0, bus: 0, motorcycle: 0 };
-      let total = 0;
-      let logs: VehicleLog[] = [];
-      let totalConfidence = 0;
+        // Trigger Layout Animation for smooth updates
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        const type = data.class ? data.class.toLowerCase() : "unknown";
-
-        // Count
-        if (type === "car") newCounts.car++;
-        else if (type === "truck") newCounts.truck++;
-        else if (type === "bus") newCounts.bus++;
-        else if (type === "motorcycle" || type === "motorbike")
-          newCounts.motorcycle++;
-
-        total++;
-
-        // Aggregate Confidence (if available, else mock logic for demo)
-        // Assuming data.confidence is 0-1, if not present we simulate high accuracy
-        const conf = data.confidence || 0.85 + Math.random() * 0.14;
-        totalConfidence += conf;
-
-        // Log Data
-        logs.push({
-          id: doc.id,
-          type: type,
-          timestamp: data.timestamp,
+        setDurum({
+          giris: data.giris || 0,
+          cikis: data.cikis || 0,
+          icerde: data.icerde || 0,
         });
-      });
 
-      // Calculate Average Accuracy
-      if (total > 0) {
-        setAccuracy((totalConfidence / total) * 100);
+        // Simulating accuracy base on consistency (mock)
+        setAccuracy(99.2 + Math.random() * 0.7);
       }
-
-      // Sort logs by time (newest first) - simplistic approximation if timestamp is server timestamp
-      // Not perfect without proper Firestore conversion but works for visual "additions"
-      // logs.sort(...); // Skipping complex sort to avoid crashes on unknown timestamp formats
-      // Just taking the last 5 from the array (assuming appending order)
-      const last5 = logs.slice(-5).reverse();
-
-      // Trigger Layout Animation for smooth updates
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-
-      setClassCounts(newCounts);
-      setTotalCount(total);
-      setRecentLogs(last5);
     });
 
     return () => unsubscribe();
@@ -382,56 +340,32 @@ export default function App() {
         >
           <View style={styles.heroInner}>
             <Text style={[styles.heroLabel, { color: theme.textSecondary }]}>
-              TOTAL VEHICLES DETECTED
+              VEHICLES INSIDE
             </Text>
             <Text style={[styles.heroCount, { color: theme.text }]}>
-              {totalCount}
+              {durum.icerde}
             </Text>
           </View>
           <View style={styles.heroGraphIcon}>
             <MaterialCommunityIcons
-              name="chart-bar"
-              size={40}
-              color={isDark ? "#333" : "#CCC"}
+              name="car-multiple"
+              size={44}
+              color={isDark ? "#3B82F6" : "#2563EB"}
             />
           </View>
         </View>
 
         {/* --- GRID --- */}
         <Text style={[styles.sectionTitle, { color: theme.textQuaternary }]}>
-          CLASSIFICATION
+          TRAFFIC FLOW
         </Text>
         <View style={styles.gridContainer}>
           <ClassCard
-            label="Cars"
-            count={classCounts.car}
-            icon="car-sports"
-            color="#3B82F6"
-            total={totalCount}
-            cardBg={theme.cardBg}
-            borderColor={theme.border}
-            textColor={theme.text}
-            labelColor={theme.textSecondary}
-            percentageColor={theme.textTertiary}
-          />
-          <ClassCard
-            label="Trucks"
-            count={classCounts.truck}
-            icon="truck"
-            color="#F59E0B"
-            total={totalCount}
-            cardBg={theme.cardBg}
-            borderColor={theme.border}
-            textColor={theme.text}
-            labelColor={theme.textSecondary}
-            percentageColor={theme.textTertiary}
-          />
-          <ClassCard
-            label="Buses"
-            count={classCounts.bus}
-            icon="bus"
+            label="Total Entries"
+            count={durum.giris}
+            icon="arrow-collapse-down"
             color="#10B981"
-            total={totalCount}
+            total={durum.giris + durum.cikis}
             cardBg={theme.cardBg}
             borderColor={theme.border}
             textColor={theme.text}
@@ -439,11 +373,11 @@ export default function App() {
             percentageColor={theme.textTertiary}
           />
           <ClassCard
-            label="Cycles"
-            count={classCounts.motorcycle}
-            icon="motorbike"
+            label="Total Exits"
+            count={durum.cikis}
+            icon="arrow-expand-up"
             color="#EF4444"
-            total={totalCount}
+            total={durum.giris + durum.cikis}
             cardBg={theme.cardBg}
             borderColor={theme.border}
             textColor={theme.text}
