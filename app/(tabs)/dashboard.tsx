@@ -70,9 +70,7 @@ const ClassCard = ({
         <View style={[styles.iconContainer, { backgroundColor: color + "15" }]}>
           <MaterialCommunityIcons name={icon} size={28} color={color} />
         </View>
-        <Text style={[styles.classCount, { color: textColor }]}>
-          {typeof count === "number" ? count.toFixed(1) : count}
-        </Text>
+        <Text style={[styles.classCount, { color: textColor }]}>{count}</Text>
       </View>
 
       <View style={styles.cardFooter}>
