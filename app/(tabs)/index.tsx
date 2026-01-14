@@ -24,14 +24,17 @@ export default function HomeScreen() {
   const { startTransition } = useTransition();
   const buttonRef = useRef<View>(null);
 
-  const userName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
+  const userName =
+    user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
 
   const handleConnectPress = () => {
-    buttonRef.current?.measureInWindow((x: number, y: number, w: number, h: number) => {
-      const centerX = x + w / 2;
-      const centerY = y + h / 2;
-      startTransition(centerX, centerY, '#e80f95ff', '/(tabs)/dashboard');
-    });
+    buttonRef.current?.measureInWindow(
+      (x: number, y: number, w: number, h: number) => {
+        const centerX = x + w / 2;
+        const centerY = y + h / 2;
+        startTransition(centerX, centerY, "#e80f95ff", "/(tabs)/dashboard");
+      }
+    );
   };
 
   return (
@@ -69,34 +72,39 @@ export default function HomeScreen() {
         resizeMode="contain"
       />
 
-      {/* LABEL */}
-      <Text style={[styles.label, { color: themeColors.label }]}>
-        Firebase Url
-      </Text>
+      {/* CONNECTION TOOLS (Only for logged in users) */}
+      {user && (
+        <>
+          {/* LABEL */}
+          <Text style={[styles.label, { color: themeColors.label }]}>
+            Firebase Url
+          </Text>
 
-      {/* INPUT */}
-      <TextInput
-        value={ip}
-        onChangeText={setIp}
-        style={[
-          styles.input,
-          {
-            backgroundColor: themeColors.inputBackground,
-            color: themeColors.inputText,
-          },
-        ]}
-        readOnly
-        keyboardType="numeric"
-      />
+          {/* INPUT */}
+          <TextInput
+            value={ip}
+            onChangeText={setIp}
+            style={[
+              styles.input,
+              {
+                backgroundColor: themeColors.inputBackground,
+                color: themeColors.inputText,
+              },
+            ]}
+            readOnly
+            keyboardType="numeric"
+          />
 
-      {/* BUTTON */}
-      <TouchableOpacity 
-        ref={buttonRef}
-        style={styles.button}
-        onPress={handleConnectPress}
-      >
-        <Text style={styles.buttonText}>CONNECT SYSTEM</Text>
-      </TouchableOpacity>
+          {/* BUTTON */}
+          <TouchableOpacity
+            ref={buttonRef}
+            style={styles.button}
+            onPress={handleConnectPress}
+          >
+            <Text style={styles.buttonText}>CONNECT SYSTEM</Text>
+          </TouchableOpacity>
+        </>
+      )}
 
       {!user && (
         <>

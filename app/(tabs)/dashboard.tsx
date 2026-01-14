@@ -1,7 +1,9 @@
+import { useAuth } from "@/context/auth-context";
 import { db } from "@/firebaseConfig";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { collection, onSnapshot, query } from "firebase/firestore";
+import { useRouter } from "expo-router";
+import { doc, onSnapshot } from "firebase/firestore";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -10,22 +12,22 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // --- TYPES ---
-interface Counts {
-  car: number;
-  truck: number;
-  bus: number;
-  motorcycle: number;
+interface DurumData {
+  giris: number;
+  cikis: number;
+  icerde: number;
 }
 
-interface VehicleLog {
+interface LogData {
   id: string;
-  type: string;
-  timestamp: any; // Firestore Timestamp
+  type: "giris" | "cikis";
+  timestamp: any;
 }
 
 interface ClassCardProps {
@@ -42,33 +44,6 @@ interface ClassCardProps {
 }
 
 // --- COMPONENTS ---
-
-const SystemStat = ({
-  label,
-  value,
-  icon,
-  color,
-  textColor,
-  labelColor,
-}: {
-  label: string;
-  value: string;
-  icon: any;
-  color: string;
-  textColor: string;
-  labelColor: string;
-}) => (
-  <View style={styles.systemStat}>
-    <MaterialCommunityIcons
-      name={icon}
-      size={16}
-      color={color}
-      style={{ marginBottom: 4 }}
-    />
-    <Text style={[styles.statValue, { color: textColor }]}>{value}</Text>
-    <Text style={[styles.statLabelSmall, { color: labelColor }]}>{label}</Text>
-  </View>
-);
 
 const ClassCard = ({
   label,
@@ -101,7 +76,7 @@ const ClassCard = ({
       <View style={styles.cardFooter}>
         <Text style={[styles.classLabel, { color: labelColor }]}>{label}</Text>
         <Text style={[styles.percentageText, { color: percentageColor }]}>
-          {percentage.toFixed(0)}%
+          {percentage.toFixed(1)}%
         </Text>
       </View>
 
@@ -161,22 +136,18 @@ const getTypeColor = (type: string) => {
 
 export default function App() {
   const colorScheme = useColorScheme();
-  const [totalCount, setTotalCount] = useState<number>(0);
-  const [classCounts, setClassCounts] = useState<Counts>({
-    car: 0,
-    truck: 0,
-    bus: 0,
-    motorcycle: 0,
+  const { user } = useAuth();
+  const router = useRouter();
+  const [durum, setDurum] = useState<DurumData>({
+    giris: 0,
+    cikis: 0,
+    icerde: 0,
   });
-  const [recentLogs, setRecentLogs] = useState<VehicleLog[]>([]);
+  const [recentLogs, setRecentLogs] = useState<LogData[]>([]);
   // Animation Values
   // We start opacity at 0.6 so it's visible even if user can't scroll much, but animates to 1 on scroll
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  // Stats State
-  const [fps, setFps] = useState(60);
-  const [latency, setLatency] = useState(24);
-  const [accuracy, setAccuracy] = useState(98.5);
   const { top, bottom } = useSafeAreaInsets();
 
   // Theme colors
@@ -192,93 +163,23 @@ export default function App() {
     borderStrong: isDark ? "#333" : "#D0D0D0",
     statusBarStyle: isDark ? "light-content" : "dark-content",
   };
-  // FPS Counter
-  useEffect(() => {
-    let lastTime = Date.now();
-    let frames = 0;
-    let animationFrameId: number;
-
-    const loop = () => {
-      const now = Date.now();
-      frames++;
-
-      if (now - lastTime >= 1000) {
-        setFps(frames);
-        frames = 0;
-        lastTime = now;
-      }
-
-      animationFrameId = requestAnimationFrame(loop);
-    };
-
-    loop();
-
-    return () => {
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
-    };
-  }, []);
 
   useEffect(() => {
-    // Listen to vehicle detections, order by timestamp desc for logs?
-    // Firestore realtime listener doesn't perfectly support 'orderBy' without an index usually.
-    // For simplicity, we'll sort client-side for this small demo or assume insertion order.
-    // Ideally: const q = query(collection(db, "detected_vehicles"), orderBy('timestamp', 'desc'), limit(10));
-    // Users code uses document() which creates auto-id (roughly ordered), but we don't have indexes yet.
-    // We will just fetch all and process client side for the scope of this task.
+    // Listen to the single status document
+    const docRef = doc(db, "otopark", "durum");
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as DurumData;
 
-    const q = query(collection(db, "detected_vehicles"));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      // Simulate Latency update on data receive
-      setLatency(Math.floor(Math.random() * (45 - 15) + 15));
+        // Trigger Layout Animation for smooth updates
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 
-      let newCounts = { car: 0, truck: 0, bus: 0, motorcycle: 0 };
-      let total = 0;
-      let logs: VehicleLog[] = [];
-      let totalConfidence = 0;
-
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        const type = data.class ? data.class.toLowerCase() : "unknown";
-
-        // Count
-        if (type === "car") newCounts.car++;
-        else if (type === "truck") newCounts.truck++;
-        else if (type === "bus") newCounts.bus++;
-        else if (type === "motorcycle" || type === "motorbike")
-          newCounts.motorcycle++;
-
-        total++;
-
-        // Aggregate Confidence (if available, else mock logic for demo)
-        // Assuming data.confidence is 0-1, if not present we simulate high accuracy
-        const conf = data.confidence || 0.85 + Math.random() * 0.14;
-        totalConfidence += conf;
-
-        // Log Data
-        logs.push({
-          id: doc.id,
-          type: type,
-          timestamp: data.timestamp,
+        setDurum({
+          giris: data.giris || 0,
+          cikis: data.cikis || 0,
+          icerde: data.icerde || 0,
         });
-      });
-
-      // Calculate Average Accuracy
-      if (total > 0) {
-        setAccuracy((totalConfidence / total) * 100);
       }
-
-      // Sort logs by time (newest first) - simplistic approximation if timestamp is server timestamp
-      // Not perfect without proper Firestore conversion but works for visual "additions"
-      // logs.sort(...); // Skipping complex sort to avoid crashes on unknown timestamp formats
-      // Just taking the last 5 from the array (assuming appending order)
-      const last5 = logs.slice(-5).reverse();
-
-      // Trigger Layout Animation for smooth updates
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-
-      setClassCounts(newCounts);
-      setTotalCount(total);
-      setRecentLogs(last5);
     });
 
     return () => unsubscribe();
@@ -324,169 +225,149 @@ export default function App() {
         )}
         scrollEventThrottle={16}
       >
-        {/* --- HEADER --- */}
-        <View style={styles.header}>
-          <View>
-            <Text style={[styles.appTitle, { color: theme.text }]}>
-              TRAFFIC<Text style={{ color: "#3B82F6" }}>AI</Text>
-            </Text>
-            <Text style={[styles.subTitle, { color: theme.textSecondary }]}>
-              Istanbul, TR • CAM-01
-            </Text>
-          </View>
-          <View style={styles.liveBadge}>
-            <View style={styles.blinkingDot} />
-            <Text style={styles.liveText}>LIVE</Text>
-          </View>
-        </View>
-
-        {/* --- SYSTEM STATS (Functional) --- */}
-        <View
-          style={[
-            styles.statsRow,
-            { backgroundColor: theme.cardBg, borderColor: theme.border },
-          ]}
-        >
-          <SystemStat
-            label="FPS"
-            value={fps.toString()}
-            icon="speedometer"
-            color="#10B981"
-            textColor={theme.text}
-            labelColor={theme.textTertiary}
-          />
-          <SystemStat
-            label="LATENCY"
-            value={`${latency}ms`}
-            icon="wifi"
-            color="#3B82F6"
-            textColor={theme.text}
-            labelColor={theme.textTertiary}
-          />
-          <SystemStat
-            label="ACCURACY"
-            value={`${accuracy.toFixed(1)}%`}
-            icon="target"
-            color="#F59E0B"
-            textColor={theme.text}
-            labelColor={theme.textTertiary}
-          />
-        </View>
-
-        {/* --- HERO CARD --- */}
-        <View
-          style={[
-            styles.heroCard,
-            { backgroundColor: theme.cardBg, borderColor: theme.borderStrong },
-          ]}
-        >
-          <View style={styles.heroInner}>
-            <Text style={[styles.heroLabel, { color: theme.textSecondary }]}>
-              TOTAL VEHICLES DETECTED
-            </Text>
-            <Text style={[styles.heroCount, { color: theme.text }]}>
-              {totalCount}
-            </Text>
-          </View>
-          <View style={styles.heroGraphIcon}>
+        {!user ? (
+          <View style={styles.loginContainer}>
             <MaterialCommunityIcons
-              name="chart-bar"
-              size={40}
-              color={isDark ? "#333" : "#CCC"}
+              name="lock-outline"
+              size={80}
+              color={theme.textTertiary}
             />
+            <Text style={[styles.loginTitle, { color: theme.text }]}>
+              Authentication Required
+            </Text>
+            <Text
+              style={[styles.loginSubTitle, { color: theme.textSecondary }]}
+            >
+              Please sign in to access live traffic metrics and system
+              analytics.
+            </Text>
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={() => router.push("/(auth)/login")}
+            >
+              <Text style={styles.loginButtonText}>Go to Login</Text>
+            </TouchableOpacity>
           </View>
-        </View>
+        ) : (
+          <>
+            {/* --- HEADER --- */}
+            <View style={styles.header}>
+              <View>
+                <Text style={[styles.appTitle, { color: theme.text }]}>
+                  TRAFFIC<Text style={{ color: "#3B82F6" }}>AI</Text>
+                </Text>
+                <Text style={[styles.subTitle, { color: theme.textSecondary }]}>
+                  Gaziantep, TR • CAM-01
+                </Text>
+              </View>
+              <View style={styles.liveBadge}>
+                <View style={styles.blinkingDot} />
+                <Text style={styles.liveText}>LIVE</Text>
+              </View>
+            </View>
 
-        {/* --- GRID --- */}
-        <Text style={[styles.sectionTitle, { color: theme.textQuaternary }]}>
-          CLASSIFICATION
-        </Text>
-        <View style={styles.gridContainer}>
-          <ClassCard
-            label="Cars"
-            count={classCounts.car}
-            icon="car-sports"
-            color="#3B82F6"
-            total={totalCount}
-            cardBg={theme.cardBg}
-            borderColor={theme.border}
-            textColor={theme.text}
-            labelColor={theme.textSecondary}
-            percentageColor={theme.textTertiary}
-          />
-          <ClassCard
-            label="Trucks"
-            count={classCounts.truck}
-            icon="truck"
-            color="#F59E0B"
-            total={totalCount}
-            cardBg={theme.cardBg}
-            borderColor={theme.border}
-            textColor={theme.text}
-            labelColor={theme.textSecondary}
-            percentageColor={theme.textTertiary}
-          />
-          <ClassCard
-            label="Buses"
-            count={classCounts.bus}
-            icon="bus"
-            color="#10B981"
-            total={totalCount}
-            cardBg={theme.cardBg}
-            borderColor={theme.border}
-            textColor={theme.text}
-            labelColor={theme.textSecondary}
-            percentageColor={theme.textTertiary}
-          />
-          <ClassCard
-            label="Cycles"
-            count={classCounts.motorcycle}
-            icon="motorbike"
-            color="#EF4444"
-            total={totalCount}
-            cardBg={theme.cardBg}
-            borderColor={theme.border}
-            textColor={theme.text}
-            labelColor={theme.textSecondary}
-            percentageColor={theme.textTertiary}
-          />
-        </View>
-
-        {/* --- RECENT ACTIVITY (ANIMATED) --- */}
-        <Animated.View
-          style={{
-            opacity: recentOpacity,
-            transform: [{ translateY: recentTranslateY }],
-          }}
-        >
-          <Text style={[styles.sectionTitle, { color: theme.textQuaternary }]}>
-            RECENT DETECTIONS
-          </Text>
-          <View
-            style={[
-              styles.recentList,
-              { backgroundColor: theme.cardBg, borderColor: theme.border },
-            ]}
-          >
-            {recentLogs.length === 0 ? (
-              <Text style={[styles.emptyText, { color: theme.textQuaternary }]}>
-                Waiting for detection...
-              </Text>
-            ) : (
-              recentLogs.map((log, index) => (
-                <RecentItem
-                  key={index}
-                  type={log.type}
-                  time="Just now"
-                  textColor={theme.text}
-                  timeColor={theme.textTertiary}
-                  borderColor={theme.border}
+            {/* --- HERO CARD --- */}
+            <View
+              style={[
+                styles.heroCard,
+                {
+                  backgroundColor: theme.cardBg,
+                  borderColor: theme.borderStrong,
+                },
+              ]}
+            >
+              <View style={styles.heroInner}>
+                <Text
+                  style={[styles.heroLabel, { color: theme.textSecondary }]}
+                >
+                  VEHICLES INSIDE
+                </Text>
+                <Text style={[styles.heroCount, { color: theme.text }]}>
+                  {durum.icerde}
+                </Text>
+              </View>
+              <View style={styles.heroGraphIcon}>
+                <MaterialCommunityIcons
+                  name="car-multiple"
+                  size={44}
+                  color={isDark ? "#3B82F6" : "#2563EB"}
                 />
-              ))
-            )}
-          </View>
-        </Animated.View>
+              </View>
+            </View>
 
+            {/* --- GRID --- */}
+            <Text
+              style={[styles.sectionTitle, { color: theme.textQuaternary }]}
+            >
+              TRAFFIC FLOW
+            </Text>
+            <View style={styles.gridContainer}>
+              <ClassCard
+                label="Total Entries"
+                count={durum.giris}
+                icon="arrow-collapse-down"
+                color="#10B981"
+                total={durum.giris + durum.cikis}
+                cardBg={theme.cardBg}
+                borderColor={theme.border}
+                textColor={theme.text}
+                labelColor={theme.textSecondary}
+                percentageColor={theme.textTertiary}
+              />
+              <ClassCard
+                label="Total Exits"
+                count={durum.cikis}
+                icon="arrow-expand-up"
+                color="#EF4444"
+                total={durum.giris + durum.cikis}
+                cardBg={theme.cardBg}
+                borderColor={theme.border}
+                textColor={theme.text}
+                labelColor={theme.textSecondary}
+                percentageColor={theme.textTertiary}
+              />
+            </View>
+
+            {/* --- RECENT ACTIVITY (ANIMATED) --- */}
+            <Animated.View
+              style={{
+                opacity: recentOpacity,
+                transform: [{ translateY: recentTranslateY }],
+              }}
+            >
+              <Text
+                style={[styles.sectionTitle, { color: theme.textQuaternary }]}
+              >
+                RECENT DETECTIONS
+              </Text>
+              <View
+                style={[
+                  styles.recentList,
+                  { backgroundColor: theme.cardBg, borderColor: theme.border },
+                ]}
+              >
+                {recentLogs.length === 0 ? (
+                  <Text
+                    style={[styles.emptyText, { color: theme.textQuaternary }]}
+                  >
+                    Waiting for detection...
+                  </Text>
+                ) : (
+                  recentLogs.map((log, index) => (
+                    <RecentItem
+                      key={index}
+                      type={log.type}
+                      time="Just now"
+                      textColor={theme.text}
+                      timeColor={theme.textTertiary}
+                      borderColor={theme.border}
+                    />
+                  ))
+                )}
+              </View>
+            </Animated.View>
+          </>
+        )}
         {/* Padding to ensure scrollability for animation effect if content is short */}
         <View style={{ height: 100 }} />
       </Animated.ScrollView>
@@ -541,26 +422,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "bold",
   },
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    borderRadius: 16,
-    padding: 15,
-    marginBottom: 25,
-    borderWidth: 1,
-  },
-  systemStat: {
-    alignItems: "center",
-  },
-  statValue: {
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  statLabelSmall: {
-    fontSize: 10,
-    fontWeight: "600",
-    marginTop: 2,
-  },
+
   heroCard: {
     borderRadius: 24,
     padding: 25,
@@ -680,5 +542,41 @@ const styles = StyleSheet.create({
     textAlign: "center",
     padding: 20,
     fontStyle: "italic",
+  },
+  loginContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 100,
+    paddingHorizontal: 40,
+  },
+  loginTitle: {
+    fontSize: 24,
+    fontWeight: "800",
+    marginTop: 20,
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  loginSubTitle: {
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 30,
+    lineHeight: 20,
+  },
+  loginButton: {
+    backgroundColor: "#3B82F6",
+    paddingHorizontal: 40,
+    paddingVertical: 15,
+    borderRadius: 30,
+    shadowColor: "#3B82F6",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  loginButtonText: {
+    color: "#FFF",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });
