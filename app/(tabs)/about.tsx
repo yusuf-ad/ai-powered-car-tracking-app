@@ -20,25 +20,77 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const developers = [
   {
-    name: "Alex Johnson",
-    id: "123703250",
-    avatar: "https://i.pravatar.cc/150?u=alex",
+    name: "Osman İ.",
+    id: "221504891",
+    department: "SENG",
+    avatar: "https://i.pravatar.cc/150?u=osman",
   },
   {
-    name: "Maria Rodriguez",
-    id: "123403452",
-    avatar: "https://i.pravatar.cc/150?u=maria",
+    name: "Yusuf A.",
+    id: "221504005",
+    department: "SENG",
+    avatar: "https://i.pravatar.cc/150?u=yusuf",
   },
   {
-    name: "Sam Lee",
-    id: "123507814",
-    avatar: "https://i.pravatar.cc/150?u=sam",
+    name: "Yunus Mert K.",
+    id: "221504004",
+    department: "SENG",
+    avatar: "https://i.pravatar.cc/150?u=yunus",
   },
-  ...Array.from({ length: 9 }).map((_, i) => ({
-    name: `Developer ${i + 4}`,
-    id: `12300000${i}`,
-    avatar: `https://i.pravatar.cc/150?u=${i + 4}`,
-  })),
+  {
+    name: "Muhammet Mustafa Ö.",
+    id: "221504008",
+    department: "SENG",
+    avatar: "https://i.pravatar.cc/150?u=muhammet1",
+  },
+  {
+    name: "Mehmet Ali K.",
+    id: "221504018",
+    department: "SENG",
+    avatar: "https://i.pravatar.cc/150?u=mehmet",
+  },
+  {
+    name: "Songül Y.",
+    id: "231504810",
+    department: "SENG",
+    avatar: "https://i.pravatar.cc/150?u=songul",
+  },
+  {
+    name: "Muhammet Emir Y.",
+    id: "221504014",
+    department: "SENG",
+    avatar: "https://i.pravatar.cc/150?u=muhammet2",
+  },
+  {
+    name: "Muhammed D.",
+    id: "211502009",
+    department: "EEE",
+    avatar: "https://i.pravatar.cc/150?u=muhammed1",
+  },
+  {
+    name: "Furkan D.",
+    id: "221504019",
+    department: "SENG",
+    avatar: "https://i.pravatar.cc/150?u=furkan",
+  },
+  {
+    name: "Muhammed Dogan T.",
+    id: "221504037",
+    department: "SENG",
+    avatar: "https://i.pravatar.cc/150?u=muhammed2",
+  },
+  {
+    name: "Sudenaz A.",
+    id: "221504027",
+    department: "SENG",
+    avatar: "https://i.pravatar.cc/150?u=sudenaz",
+  },
+  {
+    name: "Ahmet N.",
+    id: "221504039",
+    department: "SENG",
+    avatar: "https://i.pravatar.cc/150?u=ahmet",
+  },
 ];
 
 export default function AboutScreen() {
@@ -108,7 +160,7 @@ export default function AboutScreen() {
               <View style={styles.developerInfo}>
                 <ThemedText type="defaultSemiBold">{dev.name}</ThemedText>
                 <ThemedText style={styles.studentId}>
-                  Student ID: {dev.id}
+                  {dev.id} - {dev.department}
                 </ThemedText>
               </View>
             </View>
@@ -145,7 +197,10 @@ export default function AboutScreen() {
 
         {/* Sign Out Button */}
         {user && (
-          <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+          <TouchableOpacity
+            style={styles.signOutButton}
+            onPress={handleSignOut}
+          >
             <Ionicons
               name="log-out-outline"
               size={24}
